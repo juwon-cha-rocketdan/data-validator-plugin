@@ -1,0 +1,9 @@
+{
+  "name": "data-validator",
+  "description": "게임 데이터 테이블(Google Sheets)을 검증해 라이브 사고를 예방한다. 스키마 오류, 끊긴 크로스 참조, 밸런스 이상치를 잡아 Slack으로 알림. 매일 오전 10시 KST 자동 실행 및 수동 트리거(/validate-data) 지원.",
+  "author": {
+    "name": "juwon-cha-rocketdan"
+  },
+  "repository": "https://github.com/juwon-cha-rocketdan/data-validator-plugin",
+  "keywords": ["google-sheets", "validation", "game-data", "slack", "balance", "schema"]
+}

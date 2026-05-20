@@ -1,0 +1,19 @@
+{
+  "name": "data-validator-plugin",
+  "owner": {
+    "name": "juwon-cha-rocketdan"
+  },
+  "metadata": {
+    "description": "게임 데이터 테이블(Google Sheets) 검증 스킬 — 라이브 데이터 사고 예방용 Claude Code 플러그인",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "data-validator",
+      "source": "./plugins/data-validator",
+      "description": "Google Sheets 게임 데이터 테이블을 스키마/크로스참조/밸런스 이상치 3종 검증 후 Slack으로 알림",
+      "keywords": ["google-sheets", "validation", "game-data", "slack", "balance", "schema", "rocketdan"],
+      "category": "productivity"
+    }
+  ]
+}
