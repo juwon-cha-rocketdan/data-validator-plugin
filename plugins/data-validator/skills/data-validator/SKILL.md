@@ -49,8 +49,10 @@ config.json 스키마:
    - **Anthropic Connector (Claude Desktop / Cowork / Routines)**: `slack_list_channels` 또는 채널 검색에 해당하는 Connector 도구
    - 어느 쪽이든 성공하면 워크스페이스 정보를 추출하고 다음 단계로
    - 둘 다 실패 → 실행 환경(Claude Desktop의 Connectors / Claude Code의 MCP / Webhook 폴백) 가이드를 사용자에게 제시
-2. **Google Sheets URL 입력** — "링크가 있는 사람" 공개 설정 안내
-3. **검증할 탭 선택** — 시트 메타데이터에서 자동 추출 후 사용자가 선택
+2. **Google Sheets URL 입력** — "링크가 있는 사람" 공개 설정 안내. URL에서 `sheet_id` 추출.
+3. **탭 자동 디스커버리 + "전체/선택" 분기** — `python scripts/fetch_sheet.py --list-tabs --sheet-id <id>`를 호출해 모든 탭의 `[{name, gid}, ...]` 목록을 받음. 사용자에게 두 선택지 제시:
+   - **[전체]** — 발견된 모든 탭을 그대로 `sheets`에 등록. 스키마 미지정이라 강한 검증(필수값/타입/enum)은 동작하지 않고 outlier 검증만 돌아감 → 노이즈가 많아질 수 있음을 사전 고지.
+   - **[선택]** — 탭 목록에서 멀티 선택. 선택된 탭만 등록.
 4. **Slack 채널 선택** — Slack 도구의 채널 검색 결과로 후보 제시(자유 텍스트 X). Webhook 모드면 URL 입력.
 5. **(선택) 스키마 정의** — 비워두면 헤더 + 첫 데이터 행으로 자동 추론. 예시는 `references/schema_examples.md` 참조.
 6. **(선택) 크로스 참조 규칙** — 예: `shop_rewards.reward_id → items.id`. 예시는 `references/cross_ref_examples.md` 참조.
@@ -74,6 +76,7 @@ config.json 스키마:
 1. **데이터 가져오기** — `python scripts/fetch_sheet.py` 실행
    - 각 시트를 공개 CSV export URL로 가져와 메모리에 로드
    - 가져온 데이터를 임시 디렉터리에 CSV로 저장 (validate.py가 읽음)
+   - 별도 모드 `--list-tabs --sheet-id <id>` 는 시트의 모든 탭(name, gid)을 JSON으로 stdout 출력 (onboarding 단계에서 사용)
 2. **3종 검증** — `python scripts/validate.py` 실행
    - 스키마(타입/필수값/범위/중복/enum) + 크로스 참조 + 밸런스 이상치(3-sigma)
    - 출력 JSON:
@@ -119,7 +122,7 @@ config.json 스키마:
 ├── SKILL.md
 ├── requirements.txt            # pandas, numpy, requests
 ├── scripts/
-│   ├── fetch_sheet.py          # 시트 fetch
+│   ├── fetch_sheet.py          # 시트 fetch + 탭 디스커버리(--list-tabs)
 │   ├── validate.py             # 스키마 / 크로스 참조 / 이상치 3종
 │   └── notify_slack.py         # MCP 분기 / Webhook 호출
 ├── references/

@@ -64,17 +64,44 @@
 
 ---
 
-## Step 3: 검증할 탭 선택
+## Step 3: 검증할 탭 선택 — "전체/선택" 분기
+
+`python scripts/fetch_sheet.py --list-tabs --sheet-id <id>` 호출 → 모든 탭의 `[{name, gid}, ...]` JSON을 받음. 자유 텍스트 입력 대신 `AskUserQuestion`으로 두 선택지를 제시한다.
 
 ```
-스킬: 시트에 탭이 5개 있네요. 검증할 탭을 골라주세요.
-      [ ] items
-      [ ] skills
-      [ ] shop_rewards
-      [ ] gacha_pool
-      [ ] enemies
-사용자: items, skills, shop_rewards
+스킬: 시트에 탭이 {N}개 있어요. 어떻게 검증할까요?
+      [전체] 모든 탭 자동 등록 — 빠르지만 스키마 없이는 outlier 경고만 잡혀서 노이즈가 많을 수 있어요.
+      [선택] 검증할 탭을 직접 고르고, 각 탭의 스키마도 정의 — 정확하지만 셋업 시간이 더 들어요.
 ```
+
+### 분기 A: 전체
+
+```
+사용자: 전체
+스킬: 모든 탭({N}개)을 sheets에 등록할게요.
+      스키마는 비워두니까 강한 검증(필수값/타입/enum)은 건너뛰고 outlier 경고만 발송돼요.
+      나중에 특정 탭에 스키마를 추가하고 싶으면 config.json을 수정하거나 다시 `/validate-data`를 실행해 주세요.
+```
+
+config.json에 `sheets: [{"name": "<tab>", "gid": "<gid>"}, ...]` 전체 탭 등록. `schema`는 비워둠.
+
+### 분기 B: 선택
+
+탭이 많으면 검색어 입력으로 필터링 후 멀티 선택.
+
+```
+스킬: 검증할 탭을 골라주세요. (멀티 선택)
+      [ ] !SpecData
+      [ ] BurgerPyramidProgressData
+      [ ] StageData
+      ... (총 {N}개)
+사용자: StageData, ItemData
+스킬: 2개 선택 완료. 각 탭의 스키마를 정의할까요?
+      [예] 컬럼별 타입/필수값/enum을 묻는 인터뷰로 진행
+      [아니오] 헤더 + 첫 데이터 행으로 자동 추론 (1일 스펙)
+```
+
+선택한 탭만 `sheets`에 등록.
 
 ---
 

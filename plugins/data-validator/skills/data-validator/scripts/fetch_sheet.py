@@ -5,12 +5,17 @@ downloads each tab via the public CSV export endpoint, and writes a CSV
 per sheet to the output directory.
 
 Output (stdout): JSON listing per-sheet paths to today's CSV.
+
+Also supports --list-tabs mode for onboarding: scrapes the spreadsheet's
+public /edit HTML to enumerate every tab as {"name", "gid"} pairs. The skill
+workflow uses this to offer "validate all tabs vs. select specific tabs".
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -22,6 +27,40 @@ import requests
 
 CONFIG_PATH = Path.home() / ".claude" / "data-validator" / "config.json"
 CSV_EXPORT_URL = "https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+EDIT_URL = "https://docs.google.com/spreadsheets/d/{sheet_id}/edit"
+
+# Tab-discovery regex: extracts (gid, tab_name) pairs from /edit HTML.
+# Google embeds tab metadata as escaped JSON inside a JS bootstrap blob,
+# shaped like:  [<idx>,0,"<gid>",[{"1":[[0,0,"<tab_name>"]
+# Heuristic — depends on Google's HTML and may break if they change format.
+TAB_BOOTSTRAP_RE = re.compile(
+    r'\[\d+,0,\\"(\d+)\\",\[\{\\"1\\":\[\[0,0,\\"([^\\"]+)\\"\]'
+)
+
+
+def list_tabs(sheet_id: str) -> list[dict]:
+    """Return every tab in the sheet as [{"name", "gid"}, ...].
+
+    Sheet must be public ("anyone with link"). Order matches the spreadsheet's
+    natural tab order. Duplicates removed (first occurrence wins).
+    """
+    url = EDIT_URL.format(sheet_id=quote(sheet_id, safe=""))
+    response = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+    response.raise_for_status()
+    matches = TAB_BOOTSTRAP_RE.findall(response.text)
+    if not matches:
+        raise SystemExit(
+            f"could not find any tabs in {url}. "
+            "the sheet may be private, or Google's HTML format may have changed."
+        )
+    tabs: list[dict] = []
+    seen: set[str] = set()
+    for gid, name in matches:
+        if gid in seen:
+            continue
+        seen.add(gid)
+        tabs.append({"name": name, "gid": gid})
+    return tabs
 
 
 def load_config(override: Path | None = None) -> dict:
@@ -66,7 +105,25 @@ def main() -> int:
                         help="override config.json path (for tests)")
     parser.add_argument("--out-dir", type=Path, default=None,
                         help="directory to write per-sheet CSVs (default: temp dir)")
+    parser.add_argument("--list-tabs", action="store_true",
+                        help="discover every tab in the sheet and print as JSON to stdout. "
+                             "uses --sheet-id if given, otherwise reads from config.json.")
+    parser.add_argument("--sheet-id", type=str, default=None,
+                        help="google sheets id (used with --list-tabs when no config exists yet)")
     args = parser.parse_args()
+
+    if args.list_tabs:
+        sheet_id = args.sheet_id
+        if not sheet_id:
+            config = load_config(args.config)
+            sheet_id = config.get("sheet_id")
+        if not sheet_id:
+            raise SystemExit("--list-tabs requires --sheet-id or sheet_id in config.json")
+        tabs = list_tabs(sheet_id)
+        json.dump({"sheet_id": sheet_id, "tabs": tabs},
+                  sys.stdout, ensure_ascii=False, indent=2)
+        sys.stdout.write("\n")
+        return 0
 
     config = load_config(args.config)
     sheet_id = config.get("sheet_id")
