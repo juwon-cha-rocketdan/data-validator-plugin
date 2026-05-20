@@ -28,6 +28,16 @@ claude plugin install data-validator
 
 처음 실행 시 한국어 온보딩이 시작됩니다 (5분 이내 완료).
 
+온보딩 흐름:
+1. Slack 연결 자동 확인 (MCP 또는 Webhook)
+2. Google Sheets URL 입력
+3. 탭 자동 디스커버리 → **전체 등록** 또는 **직접 선택**
+4. Slack 채널 선택
+5. 스키마 자동 추론 + 확인
+6. 테스트 메시지 발송 → 도착 확인 후 셋업 완료
+
+이후 `/validate-data` 호출 시 즉시 검증 → Slack 알림.
+
 ## 필요 조건
 
 - Python 3.9+
@@ -51,13 +61,21 @@ plugins/data-validator/
         ├── SKILL.md
         ├── requirements.txt
         ├── scripts/
-        │   ├── fetch_sheet.py      # Google Sheets CSV fetch
+        │   ├── fetch_sheet.py      # Google Sheets CSV fetch + 탭 디스커버리(--list-tabs)
         │   ├── validate.py         # 3종 검증 엔진
         │   └── notify_slack.py     # Slack 알림 (MCP / Webhook)
         └── references/
             ├── onboarding_flow.md
             ├── schema_examples.md
             └── cross_ref_examples.md
+```
+
+## 업데이트
+
+새 버전이 나오면:
+
+```bash
+claude plugin update data-validator
 ```
 
 ## 설정 파일
