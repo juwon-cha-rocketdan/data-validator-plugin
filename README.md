@@ -13,7 +13,11 @@
 ## 설치
 
 ```bash
-claude plugin add https://github.com/juwon-cha-rocketdan/data-validator-plugin
+# 1. 마켓플레이스 등록
+claude plugin marketplace add https://github.com/juwon-cha-rocketdan/data-validator-plugin
+
+# 2. 플러그인 설치
+claude plugin install data-validator
 ```
 
 ## 사용법
